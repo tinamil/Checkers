@@ -38,13 +38,8 @@ public class CameraScript : MonoBehaviour {
 
     private void mouseMove() {
         float wheel = Input.GetAxisRaw("Mouse ScrollWheel");
-        
-        if(wheel > float.Epsilon) {
-            distance -= .2f;
-        }else if(wheel < -float.Epsilon) {
-            distance += .2f;
-        }
-
+        distance -= wheel*10;
+        distance = Mathf.Clamp(distance, .4f, 40f);
         if(Input.GetMouseButton(1)) {
             if(mouseDown) {
                 Vector2 mouseMovement = Input.mousePosition - lastMousePos;
