@@ -1,0 +1,1 @@
+SMAA Unity Shader provided by Chman under Zlib license. https://github.com/Chman/SMAA-Unity

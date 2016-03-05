@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class Piece : MonoBehaviour {
     public LayerMask pieceLayer;
 
     public LayerMask boardLayer;
+
+    public AudioClip hit1;
 
     private GameObject _square;
 
@@ -14,13 +17,19 @@ public class Piece : MonoBehaviour {
         get { return _square; }
         set {
             _square = value;
-            Bounds target = value.GetComponent<Renderer>().bounds;
-            xWidth = target.extents.x / 8;
-            zWidth = target.extents.z / 8;
+            if(value != null) {
+                Bounds target = value.GetComponent<Renderer>().bounds;
+                xWidth = target.extents.x / 8;
+                zWidth = target.extents.z / 8;
+            }
         }
     }
 
     private float xWidth, zWidth;
+
+    internal bool king = false;
+
+    internal bool pendingFinishJump = false;
 
     // Use this for initialization
     void Start() {
@@ -46,17 +55,18 @@ public class Piece : MonoBehaviour {
         }
     }
 
-    void FlipToTarget(Vector3 target) {
+    public float FlipToTarget(Vector3 target) {
+        GetComponent<Rigidbody>().velocity = Vector3.zero;
         Vector3 difference = target - transform.position;
         float angle = Mathf.Deg2Rad * 60;
-        float velocity = Mathf.Sqrt(difference.magnitude * -Physics.gravity.y / (2*Mathf.Sin(angle)*Mathf.Cos(angle)));
+        float velocity = Mathf.Sqrt(difference.magnitude * -Physics.gravity.y / (2 * Mathf.Sin(angle) * Mathf.Cos(angle)));
         float vVel = velocity * Mathf.Sin(angle);
         float hVel = velocity * Mathf.Cos(angle);
 
         float hAngle = Mathf.Atan2(difference.z, difference.x);
         float xComponent = Mathf.Cos(hAngle) * hVel;
         float zComponent = Mathf.Sin(hAngle) * hVel;
-        
+
         Vector3 launch = new Vector3(xComponent, vVel, zComponent);
 
         Rigidbody pieceRB = GetComponent<Rigidbody>();
@@ -65,6 +75,21 @@ public class Piece : MonoBehaviour {
 
         float timeOfFlight = 2 * vVel / -Physics.gravity.y;
         StartCoroutine(FinishFlight(timeOfFlight));
+        return timeOfFlight;
+    }
+
+    public static float CalculateFlightTime(Vector3 start, Vector3 target) {
+        Vector3 difference = target - start;
+        float angle = Mathf.Deg2Rad * 60;
+        float velocity = Mathf.Sqrt(difference.magnitude * -Physics.gravity.y / (2 * Mathf.Sin(angle) * Mathf.Cos(angle)));
+        float vVel = velocity * Mathf.Sin(angle);
+
+        float timeOfFlight = 2 * vVel / -Physics.gravity.y;
+        return timeOfFlight;
+    }
+
+    static public float CalculateFlightTime(Square start, Square target) {
+        return CalculateFlightTime(start.GetComponent<Collider>().bounds.center, target.GetComponent<Collider>().bounds.center);
     }
 
     IEnumerator FinishFlight(float time) {
@@ -74,18 +99,52 @@ public class Piece : MonoBehaviour {
 
     void OnDrawGizmos() {
     }
-
+    
     void OnMouseDown() {
+        if(Checkers.instance.IsMovablePiece(this)) {
+            square.GetComponent<Square>().Highlight(GetComponent<MeshRenderer>().material.color);
+            Checkers.instance.draggedPiece = this;
+        }
+    }
+
+    void OnMouseEnter() {
+        if(Checkers.instance.IsMovablePiece(this)) {
+            square.GetComponent<Square>().Highlight(GetComponent<MeshRenderer>().material.color);
+        }
+    }
+
+    void OnMouseExit() {
+        if(Checkers.instance.draggedPiece != this && square != null) {
+            square.GetComponent<Square>().ClearHighlight();
+        }
     }
 
     void OnMouseUp() {
+        Checkers.instance.draggedPiece = null;
+        square.GetComponent<Square>().ClearHighlight();
         Ray target = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
         float maxDistance = 1000f;
         if(Physics.Raycast(target, out hitInfo, maxDistance, boardLayer)) {
             GameObject targetSquare = hitInfo.collider.gameObject;
-            square = targetSquare;
-            FlipToTarget(square.GetComponent<Collider>().bounds.center);
+            Checkers.instance.MovePiece(this, targetSquare.GetComponent<Square>());
         }
+    }
+
+    public float FlipToTarget(Square target) {
+        float time = FlipToTarget(target.GetComponent<Collider>().bounds.center);
+        StartCoroutine(PlayHit(time));
+        return time;
+    }
+
+    IEnumerator PlayHit(float time) {
+        yield return new WaitForSeconds(time);
+        SoundManager.instance.RandomizeSfx(hit1);
+    }
+
+    public IEnumerator FlipToTarget(Square target, float timeDelay) {
+        flying = true;
+        yield return new WaitForSeconds(timeDelay);
+        FlipToTarget(target);
     }
 }

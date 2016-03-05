@@ -91,7 +91,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d473c4a8ba844e14188aa818e5bd0e19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  board: {fileID: 0}
+  board: {fileID: 466430, guid: f654c0cfdebe21644866496ab0f330e2, type: 2}
   smoothing: 4
 --- !u!124 &12419002
 Behaviour:

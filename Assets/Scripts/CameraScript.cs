@@ -5,15 +5,20 @@ using System;
 public class CameraScript : MonoBehaviour {
 
     public Transform board;
-
     public float smoothing = 1f;
+    public float minDistance;
+    public float maxDistance;
 
-    private float distance = 2f;
+    private float distance;
     private float angle = 0f;
     private float yAngle = 0;
 
     private Vector3 lastMousePos;
     private bool mouseDown = false;
+
+    void Awake() {
+        distance = (maxDistance + minDistance) / 2f;
+    }
 
 	// Use this for initialization
 	void Start () {
@@ -38,8 +43,8 @@ public class CameraScript : MonoBehaviour {
 
     private void mouseMove() {
         float wheel = Input.GetAxisRaw("Mouse ScrollWheel");
-        distance -= wheel*10;
-        distance = Mathf.Clamp(distance, .4f, 40f);
+        distance -= wheel*distance;
+        distance = Mathf.Clamp(distance, minDistance, maxDistance);
         if(Input.GetMouseButton(1)) {
             if(mouseDown) {
                 Vector2 mouseMovement = Input.mousePosition - lastMousePos;
@@ -64,14 +69,14 @@ public class CameraScript : MonoBehaviour {
         target.z = Mathf.Cos(angle);
 
         yAngle += vertical;
-        yAngle = Mathf.Clamp(yAngle, 0, Mathf.PI * 0.5f);
+        yAngle = Mathf.Clamp(yAngle, 0.001f, Mathf.PI * 0.499f);
 
         target.y = Mathf.Sin(yAngle) * distance;
 
         float ratio = Mathf.Cos(yAngle) * distance;
         target.x *= ratio;
         target.z *= ratio;
-          
+                  
         transform.position = Vector3.Slerp(transform.position, target, smoothing * Time.deltaTime);
     }
 }
