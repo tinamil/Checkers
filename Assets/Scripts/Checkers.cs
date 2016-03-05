@@ -76,7 +76,7 @@ public class Checkers : MonoBehaviour {
     public bool IsMovablePiece(Piece piece) {
         if(piece.square == null) return false;
         Square currentSquare = piece.square.GetComponent<Square>();
-        foreach(Square s in GetSquares(currentSquare, 1)){
+        foreach(Square s in GetSquares(currentSquare, 1)){ 
             if(IsValidMove(piece, s)) return true;
         }
         foreach(Square s in GetSquares(currentSquare, 2)){
