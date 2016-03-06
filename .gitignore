@@ -27,6 +27,7 @@ obj/
 *.userprefs
 /*.csproj
 *.pidb
+*.pdb
 *.suo
 /*.sln
 *.user

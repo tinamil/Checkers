@@ -23,6 +23,7 @@ public class Square : MonoBehaviour {
         col = _col;
     }
 
+    //FIXME: Nothing happens after building
     public void Highlight(Color color) {
         GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
         GetComponent<MeshRenderer>().material.SetColor("_EmissionColor", color);

@@ -22,7 +22,7 @@ public class CameraScript : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        move(0f, 0f);
+        transform.position = CalculateTarget(Mathf.Deg2Rad * -90.1f, Mathf.Deg2Rad * 45.1f);
         transform.LookAt(board);
     }
 	
@@ -61,10 +61,10 @@ public class CameraScript : MonoBehaviour {
         }
     }
 
-    private void move(float horizontal, float vertical) {
+    private Vector3 CalculateTarget(float horizontal, float vertical) {
         Vector3 target = transform.position;
         angle += horizontal;
-       
+
         target.x = Mathf.Sin(angle);
         target.z = Mathf.Cos(angle);
 
@@ -76,7 +76,11 @@ public class CameraScript : MonoBehaviour {
         float ratio = Mathf.Cos(yAngle) * distance;
         target.x *= ratio;
         target.z *= ratio;
-                  
-        transform.position = Vector3.Slerp(transform.position, target, smoothing * Time.deltaTime);
+
+        return target;
+    }
+
+    private void move(float horizontal, float vertical) {
+        transform.position = Vector3.Slerp(transform.position, CalculateTarget(horizontal, vertical), smoothing * Time.deltaTime);
     }
 }
