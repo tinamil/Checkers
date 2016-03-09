@@ -5,12 +5,11 @@ public class Board : MonoBehaviour {
 	public GameObject square;
     public Material[] squares;
 
-    public GameObject[,] grid;
-
+    public Square[,] grid;
 
     // Use this for initialization
     void Awake() {
-        grid = new GameObject[Checkers.rows, Checkers.cols];
+        grid = new Square[Checkers.rows, Checkers.cols];
 
         Collider collider = gameObject.GetComponent<Collider>();
         Bounds bounds = collider.bounds;
@@ -34,8 +33,8 @@ public class Board : MonoBehaviour {
                 squareObject.transform.SetParent(gameObject.transform, false);
 				squareObject.transform.Rotate (new Vector3 (90, 0, 0));
                 squareObject.transform.localScale = new Vector3(rowWidth, colWidth, 1);
-                grid[row, col] = squareObject;
-                squareObject.GetComponent<Square>().setLocation(row, col);
+                grid[row, col] = squareObject.GetComponent<Square>();
+                grid[row, col].setLocation(row, col);
             }
         }
     }

@@ -1,4 +1,9 @@
 SMAA Unity Shader provided by Chman under Zlib license. https://github.com/Chman/SMAA-Unity
+
 Sound Effects provided by Dustyroom from the Casual Game Sound - One Shot SFX Pack under CC0 license.
+
 "Choral Joy", "Love in the Air", "No Momentum", "Web of Deceit", "Where Did She Go", "Winter and Spring" music by Jay Man of Our Music Box under Creative Commons Attribution CC BY license. https://ourmusicbox.com
+
 Roboto font by Christian Robertson under Apache 2.0 license. https://www.google.com/fonts
+
+ResolutionController.cs by Scott Goodrow http://www.thewildeternal.com/2014/09/21/devlog-resolution-controller/

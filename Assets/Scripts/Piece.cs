@@ -9,11 +9,13 @@ public class Piece : MonoBehaviour {
 
     public AudioClip hit1;
 
-    private GameObject _square;
+    private Square _square;
 
     private bool flying = false;
 
-    public GameObject square {
+    public Player owner { get; set; }
+
+    public Square square {
         get { return _square; }
         set {
             _square = value;
@@ -101,27 +103,16 @@ public class Piece : MonoBehaviour {
     }
     
     void OnMouseDown() {
-        if(Checkers.instance.IsMovablePiece(this)) {
-            square.GetComponent<Square>().Highlight(GetComponent<MeshRenderer>().material.color);
+        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(this, Checkers.instance.pieceMap)) {
+            square.Highlight(GetComponent<MeshRenderer>().material.color);
             Checkers.instance.draggedPiece = this;
         }
     }
 
-    void OnMouseEnter() {
-        if(Checkers.instance.IsMovablePiece(this)) {
-            square.GetComponent<Square>().Highlight(GetComponent<MeshRenderer>().material.color);
-        }
-    }
-
-    void OnMouseExit() {
-        if(Checkers.instance.draggedPiece != this && square != null) {
-            square.GetComponent<Square>().ClearHighlight();
-        }
-    }
-
     void OnMouseUp() {
+        if(!owner.mouseControlled) return;
         Checkers.instance.draggedPiece = null;
-        square.GetComponent<Square>().ClearHighlight();
+        square.ClearHighlight();
         Ray target = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hitInfo;
         float maxDistance = 1000f;
@@ -130,6 +121,19 @@ public class Piece : MonoBehaviour {
             Checkers.instance.MovePiece(this, targetSquare.GetComponent<Square>());
         }
     }
+
+    void OnMouseEnter() {
+        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(this, Checkers.instance.pieceMap)) {
+            square.Highlight(GetComponent<MeshRenderer>().material.color);
+        }
+    }
+
+    void OnMouseExit() {
+        if(owner.mouseControlled && Checkers.instance.draggedPiece != this && square != null) {
+            square.ClearHighlight();
+        }
+    }
+
 
     public float FlipToTarget(Square target) {
         float time = FlipToTarget(target.GetComponent<Collider>().bounds.center);

@@ -35,7 +35,7 @@ public class Square : MonoBehaviour {
 
     void OnMouseEnter() {
         Piece dragged = Checkers.instance.draggedPiece;
-        if(dragged != null && Checkers.instance.IsValidMove(dragged, this)) {
+        if(dragged != null && Checkers.instance.IsValidMove(dragged, this, Checkers.instance.pieceMap)) {
             Highlight(dragged.GetComponent<MeshRenderer>().material.color);
         }
     }

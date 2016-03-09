@@ -20,18 +20,38 @@ public class CameraScript : MonoBehaviour {
         distance = (maxDistance + minDistance) / 2f;
     }
 
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start() {
         transform.position = CalculateTarget(Mathf.Deg2Rad * -90.1f, Mathf.Deg2Rad * 45.1f);
         transform.LookAt(board);
+        Smaa.QualityPreset preset = Smaa.QualityPreset.High;
+        int presetNumber = PlayerPrefs.GetInt("SMAAQuality", 2);
+        switch(presetNumber) {
+            case 0:
+                preset = Smaa.QualityPreset.Low;
+                break;
+            case 1:
+                preset = Smaa.QualityPreset.Medium;
+                break;
+            case 2:
+                preset = Smaa.QualityPreset.High;
+                break;
+            case 3:
+                preset = Smaa.QualityPreset.Ultra;
+                break;
+            default:
+                Debug.Assert(false, "Invalid SMAA Quality preset from player prefs: " + presetNumber);
+                break;
+        }
+        GetComponent<Smaa.SMAA>().Quality = preset;
     }
-	
-	// Update is called once per frame
-	void Update () {
+
+    // Update is called once per frame
+    void Update() {
         mouseMove();
         keyboardMove();
         transform.LookAt(board);
-	}
+    }
 
     private void keyboardMove() {
         float horizontal = Input.GetAxisRaw("Horizontal");
@@ -43,13 +63,13 @@ public class CameraScript : MonoBehaviour {
 
     private void mouseMove() {
         float wheel = Input.GetAxisRaw("Mouse ScrollWheel");
-        distance -= wheel*distance;
+        distance -= wheel * distance;
         distance = Mathf.Clamp(distance, minDistance, maxDistance);
         if(Input.GetMouseButton(1)) {
             if(mouseDown) {
                 Vector2 mouseMovement = Input.mousePosition - lastMousePos;
-                mouseMovement.x *= 5f/Screen.width;
-                mouseMovement.y *= 5f/Screen.height;
+                mouseMovement.x *= 5f / Screen.width;
+                mouseMovement.y *= 5f / Screen.height;
                 move(mouseMovement.x, mouseMovement.y);
                 lastMousePos = Input.mousePosition;
             } else {

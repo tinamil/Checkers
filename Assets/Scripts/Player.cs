@@ -2,21 +2,16 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class Player : MonoBehaviour {
-    
-
-    [HideInInspector]
-    public IList<Piece> pieces { get; set; }
+public class Player {
 
     public int unitDirection { get; set; }
 
-    // Use this for initialization
-    void Awake () {
-        pieces = new List<Piece>();
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+    public bool mouseControlled = true;
+
+    public Player() {
+
+    }
+
+    virtual internal void DoUpdate() {
+    }
 }
