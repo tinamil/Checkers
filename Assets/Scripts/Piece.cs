@@ -103,7 +103,7 @@ public class Piece : MonoBehaviour {
     }
     
     void OnMouseDown() {
-        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(this, Checkers.instance.pieceMap)) {
+        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(new nPiece(this), Checkers.instance.pieceMap)) {
             square.Highlight(GetComponent<MeshRenderer>().material.color);
             Checkers.instance.draggedPiece = this;
         }
@@ -123,7 +123,7 @@ public class Piece : MonoBehaviour {
     }
 
     void OnMouseEnter() {
-        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(this, Checkers.instance.pieceMap)) {
+        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(new nPiece(this), Checkers.instance.pieceMap)) {
             square.Highlight(GetComponent<MeshRenderer>().material.color);
         }
     }

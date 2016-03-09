@@ -3,6 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
+public class nPiece
+{
+    internal Piece original;
+
+    internal Player owner { get { return original.owner; } set { original.owner = value; } }
+
+    internal Square square;
+
+    internal bool king = false;
+
+    internal bool pendingFinishJump = false;
+
+    internal nPiece(Piece n)
+    {
+        this.original = n;
+        this.square = n.square;
+        this.king = n.king;
+        this.pendingFinishJump = n.pendingFinishJump;
+    }
+
+    internal nPiece(nPiece n)
+    {
+        this.original = n.original;
+        this.square = n.square;
+        this.king = n.king;
+        this.pendingFinishJump = n.pendingFinishJump;
+    }
+}
+
 public class Checkers : MonoBehaviour {
 
     public GameObject boardObject;
@@ -25,7 +54,7 @@ public class Checkers : MonoBehaviour {
 
     public enum MoveType { invalid, basic, jump };
 
-    internal Piece[,] pieceMap = new Piece[rows, cols];
+    internal nPiece[,] pieceMap = new nPiece[rows, cols];
 
     // Use this for initialization
     void Awake() {
@@ -51,7 +80,7 @@ public class Checkers : MonoBehaviour {
                     Piece pieceScript = piece.GetComponent<Piece>();
                     pieceScript.square = _board.grid[row, col];
 
-                    pieceMap[row, col] = pieceScript;
+                    pieceMap[row, col] = new nPiece(pieceScript);
                     if(row <= 2) {
                         //player1.pieces.Add(pieceScript);
                         pieceScript.owner = player1;
@@ -67,17 +96,18 @@ public class Checkers : MonoBehaviour {
         }
     }
 
+
     void Update() {
         player1.DoUpdate();
         player2.DoUpdate();
     }
 
-    public bool IsValidMove(Piece piece, Square target, Piece[,] currentState) {
+    public bool IsValidMove(nPiece piece, Square target, nPiece[,] currentState) {
         MoveType ignore;
-        return IsValidMove(currentPlayer, piece, target, currentState, out ignore);
+        return IsValidMove(currentPlayer, new nPiece(piece), target, currentState, out ignore);
     }
 
-    public bool IsMovablePiece(Piece piece, Piece[,] currentState) {
+    public bool IsMovablePiece(nPiece piece, nPiece[,] currentState) {
         if(piece.square == null) return false;
         foreach(Square s in GetSquares(piece.square, 1)){ 
             if(IsValidMove(piece, s, currentState)) return true;
@@ -88,11 +118,11 @@ public class Checkers : MonoBehaviour {
         return false;
     }
 
-    internal bool IsValidMove(Player player, Piece piece, Square target, Piece[,] currentState, out MoveType type) {
+    internal bool IsValidMove(Player player, nPiece piece, Square target, nPiece[,] currentState, out MoveType type) {
         type = MoveType.invalid;
         if(piece.owner != player) return false;
         if(IsSquareOccupied(target, currentState)) return false;
-        if(IsPendingJumpChoice(player) && piece.pendingFinishJump == false) return false;
+        if(IsPendingJumpChoice(player, currentState) && piece.pendingFinishJump == false) return false;
         if(IsJump(player, piece, target, currentState)) {
             type = MoveType.jump;
             return true;
@@ -104,12 +134,12 @@ public class Checkers : MonoBehaviour {
         return true;
     }
 
-    bool IsCurrentPlayerPiece(Piece piece) {
+    bool IsCurrentPlayerPiece(nPiece piece) {
         return piece.owner == currentPlayer;
     }
 
-    bool IsPendingJumpChoice(Player player) {
-        foreach(Piece piece in pieceMap) {
+    internal bool IsPendingJumpChoice(Player player, nPiece[,] currentState) {
+        foreach(nPiece piece in currentState) {
             if(piece != null && piece.owner == player && piece.pendingFinishJump == true) return true;
         }
         return false;
@@ -138,7 +168,7 @@ public class Checkers : MonoBehaviour {
 
     public void MovePiece(Piece piece, Square square) {
         float delay;
-        if(MovePiece(currentPlayer, OtherPlayer(currentPlayer), piece, square, ref pieceMap, out delay)) {
+        if(MovePiece(currentPlayer, OtherPlayer(currentPlayer), new nPiece(piece), square, pieceMap, out delay)) {
             StartCoroutine(SwitchPlayer(OtherPlayer(currentPlayer), delay));
             currentPlayer = null;
         }
@@ -146,7 +176,7 @@ public class Checkers : MonoBehaviour {
 
     IEnumerator SwitchPlayer(Player otherPlayer, float delay) {
         bool continueGame = false;
-        foreach(Piece p in pieceMap) {
+        foreach(nPiece p in pieceMap) {
             if(p != null && p.owner == otherPlayer) {
                 continueGame = true;
                 break;
@@ -158,8 +188,8 @@ public class Checkers : MonoBehaviour {
         }
     }
 
-    bool IsJumpAvailable(Player player, Piece[,] currentState) {
-        foreach(Piece piece in currentState) {
+    bool IsJumpAvailable(Player player, nPiece[,] currentState) {
+        foreach(nPiece piece in currentState) {
             if(piece == null || piece.owner != player) continue;
             IEnumerable<Square> adjacentSquares = GetSquares(piece.square, 2);
             foreach(Square adj in adjacentSquares) {
@@ -169,7 +199,7 @@ public class Checkers : MonoBehaviour {
         return false;
     }
 
-    internal bool IsJump(Player player, Piece piece, Square target, Piece[,] currentState) {
+    internal bool IsJump(Player player, nPiece piece, Square target, nPiece[,] currentState) {
         if(IsSquareOccupied(target, currentState)) return false;
 
         if(Mathf.Abs(target.row - piece.square.row) != 2 || Mathf.Abs(target.col - piece.square.col) != 2) return false;
@@ -179,46 +209,48 @@ public class Checkers : MonoBehaviour {
         return IsPlayerPiecePresent(otherPlayer, GetJumpedSquare(piece, target), currentState) && (IsMoveForward(player, piece, GetJumpedSquare(piece, target)) || piece.king);
     }
 
-    internal Square GetJumpedSquare(Piece piece, Square final) {
+    internal Square GetJumpedSquare(nPiece piece, Square final) {
         return _board.grid[(final.row + piece.square.row) / 2, (final.col + piece.square.col) / 2];
     }
 
-    bool IsSquareOccupied(Square target, Piece[,] currentState) {
+    bool IsSquareOccupied(Square target, nPiece[,] currentState) {
         return (IsPlayerPiecePresent(player1, target, currentState) || IsPlayerPiecePresent(player2, target, currentState));
     }
 
-    bool IsMoveForward(Player player, Piece piece, Square target) {
+    bool IsMoveForward(Player player, nPiece piece, Square target) {
         return Mathf.Sign(target.row - piece.square.row) == Mathf.Sign(player.unitDirection);
     }
 
-    bool IsMoveAdjacent(Piece piece, Square target) {
+    bool IsMoveAdjacent(nPiece piece, Square target) {
         return Mathf.Abs(target.row - piece.square.row) == 1 && Mathf.Abs(target.col - piece.square.col) == 1;
     }
 
-    bool IsPlayerPiecePresent(Player player, Square target, Piece[,] currentState) {
+    bool IsPlayerPiecePresent(Player player, Square target, nPiece[,] currentState) {
         return (GetPlayerPiece(player, target, currentState) != null);
     }
 
-    internal Piece GetPlayerPiece(Player player, Square target, Piece[,] currentState) {
-        Piece piece = currentState[target.row, target.col];
+    internal nPiece GetPlayerPiece(Player player, Square target, nPiece[,] currentState) {
+        nPiece piece = currentState[target.row, target.col];
         if(piece == null) return null;
         if(player == piece.owner) return piece;
         return null;
     }
 
-    bool JumpPiece(Player player, Player otherPlayer, Piece piece, Square target, ref Piece[,] currentState, ref float delay) {
+    bool JumpPiece(Player player, Player otherPlayer, nPiece piece, Square target, nPiece[,] currentState, ref float delay) {
         piece.pendingFinishJump = false;
-        Piece jumpedPiece = GetPlayerPiece(OtherPlayer(player), GetJumpedSquare(piece, target), currentState);
+        nPiece jumpedPiece = GetPlayerPiece(OtherPlayer(player), GetJumpedSquare(piece, target), currentState);
         Vector3 offBoard = new Vector3(player.unitDirection, 0);
-        float hangtime = Piece.CalculateFlightTime(piece.GetComponent<Collider>().bounds.center, target.GetComponent<Collider>().bounds.center);
-        float otherHangtime = Piece.CalculateFlightTime(jumpedPiece.GetComponent<Collider>().bounds.center, offBoard);
-        StartCoroutine(DelayedFlipDestroy(jumpedPiece, offBoard, delay + hangtime));
-        StartCoroutine(piece.FlipToTarget(target, delay));
+        float hangtime = Piece.CalculateFlightTime(piece.original.GetComponent<Collider>().bounds.center, target.GetComponent<Collider>().bounds.center);
+        float otherHangtime = Piece.CalculateFlightTime(jumpedPiece.original.GetComponent<Collider>().bounds.center, offBoard);
+        StartCoroutine(DelayedFlipDestroy(jumpedPiece.original, offBoard, delay + hangtime));
+        StartCoroutine(piece.original.FlipToTarget(target, delay));
         delay = delay + hangtime + otherHangtime;
         currentState[jumpedPiece.square.row, jumpedPiece.square.col] = null;
+        jumpedPiece.original.square = null;
         jumpedPiece.square = null;
         currentState[piece.square.row, piece.square.col] = null;
         piece.square = target;
+        piece.original.square = target;
         currentState[piece.square.row, piece.square.col] = piece;
         List<Square> potentialFollowJump = new List<Square>();
         foreach(Square adjacentJump in GetSquares(target, 2)) {
@@ -227,7 +259,7 @@ public class Checkers : MonoBehaviour {
             }
         }
         if(potentialFollowJump.Count == 1) {
-            return JumpPiece(player, otherPlayer, piece, potentialFollowJump[0], ref currentState, ref delay);
+            return JumpPiece(player, otherPlayer, piece, potentialFollowJump[0], currentState, ref delay);
         } else if(potentialFollowJump.Count == 0) {
             if(IsKingRow(player, piece)) {
                 piece.king = true;
@@ -239,24 +271,26 @@ public class Checkers : MonoBehaviour {
         }
     }
 
-    bool MovePiece(Player player, Player otherPlayer, Piece piece, Square target, ref Piece[,] currentState, out float delay) {
+    bool MovePiece(Player player, Player otherPlayer, nPiece piece, Square target, nPiece[,] currentState, out float delay) {
         MoveType type;
         if(IsValidMove(player, piece, target, currentState, out type)) {
             switch(type) {
 
                 case MoveType.basic:
                     currentState[piece.square.row, piece.square.col] = null;
-                    delay = piece.FlipToTarget(target);
+                    delay = piece.original.FlipToTarget(target);
                     piece.square = target;
+                    piece.original.square = target;
                     currentState[piece.square.row, piece.square.col] = piece;
                     if(IsKingRow(player, piece)) {
+                        piece.original.king = true;
                         piece.king = true;
                     }
                     return true;
 
                 case MoveType.jump:
                     delay = 0f;
-                    return JumpPiece(player, otherPlayer, piece, target, ref currentState, ref delay);
+                    return JumpPiece(player, otherPlayer, piece, target, currentState, ref delay);
                     
             }
         }
@@ -276,7 +310,7 @@ public class Checkers : MonoBehaviour {
         //Destroy(piece.gameObject);
     }
 
-    internal bool IsKingRow(Player player, Piece piece) {
+    internal bool IsKingRow(Player player, nPiece piece) {
         int targetRow = (player.unitDirection == 1 ? rows - 1 : 0);
         if(piece.square.row == targetRow) {
             return true;
