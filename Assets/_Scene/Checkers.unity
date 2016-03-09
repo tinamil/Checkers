@@ -880,6 +880,10 @@ Prefab:
       propertyPath: m_StaticEditorFlags
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 143598, guid: f654c0cfdebe21644866496ab0f330e2, type: 2}
+      propertyPath: m_TagString
+      value: BoardTag
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f654c0cfdebe21644866496ab0f330e2, type: 2}
   m_IsPrefabParent: 0
@@ -1478,8 +1482,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   boardObject: {fileID: 127058486}
   pieceObject: {fileID: 188430, guid: 7d82b63adf209ca4798c696fadc612ca, type: 2}
-  player1Object: {fileID: 158712, guid: b0b324569bd0eb34e9e0dda6496a1826, type: 2}
-  player2Object: {fileID: 158712, guid: 34a2819f4bc2e2d448f6c5ec33b743e4, type: 2}
 --- !u!1 &1490774118
 GameObject:
   m_ObjectHideFlags: 0

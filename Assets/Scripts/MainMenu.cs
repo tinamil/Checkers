@@ -10,12 +10,16 @@ public class MainMenu : MonoBehaviour {
     public GameObject menu;
     public Dropdown resolutionDropdown;
 
-	// Use this for initialization
-	void Start () {
+    public static int Player1Setting = 0;
+    public static int Player2Setting = 0;
+
+    // Use this for initialization
+    void Start () {
         Debug.Assert(resolutionDropdown != null, "Resolution dropdown was null, was it assigned in the editor?");
         Debug.Assert(mainCamera != null, "Main camera was null, was it assigned in the editor?");
         Debug.Assert(menu != null, "Main menu was null, was it assigned in the editor?");
         SetResolutionOptions();
+        //DontDestroyOnLoad(this);
      }
 
     public void ToggleMenu() {
@@ -27,6 +31,12 @@ public class MainMenu : MonoBehaviour {
         Application.Quit();
     }
 
+    public void SetPlayer1(int setting) {
+        Player1Setting = setting;
+    }
+    public void SetPlayer2(int setting) {
+        Player2Setting = setting;
+    }
     public void LoadCheckers() {
         SceneManager.LoadScene("Checkers");
     }

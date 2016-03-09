@@ -123,6 +123,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   hit1: {fileID: 8300000, guid: 32d4b1811dda14a6cb9e059ee8ad17d2, type: 3}
+  king: {fileID: 4300000, guid: dd69936f02accd54490b49a4aaf296e1, type: 3}
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1

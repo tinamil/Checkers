@@ -9,6 +9,8 @@ public class Piece : MonoBehaviour {
 
     public AudioClip hit1;
 
+    public Mesh king;
+
     private Square _square;
 
     private bool flying = false;
@@ -28,11 +30,7 @@ public class Piece : MonoBehaviour {
     }
 
     private float xWidth, zWidth;
-
-    internal bool king = false;
-
-    internal bool pendingFinishJump = false;
-
+    
     // Use this for initialization
     void Start() {
 
@@ -103,7 +101,7 @@ public class Piece : MonoBehaviour {
     }
     
     void OnMouseDown() {
-        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(new nPiece(this), Checkers.instance.pieceMap)) {
+        if(owner.mouseControlled && Checkers.IsMovablePiece(Checkers.instance.liveState.pieceMap[square.row, square.col], Checkers.instance.liveState)) {
             square.Highlight(GetComponent<MeshRenderer>().material.color);
             Checkers.instance.draggedPiece = this;
         }
@@ -123,7 +121,8 @@ public class Piece : MonoBehaviour {
     }
 
     void OnMouseEnter() {
-        if(owner.mouseControlled && Checkers.instance.IsMovablePiece(new nPiece(this), Checkers.instance.pieceMap)) {
+        if(owner.mouseControlled && square != null && Checkers.instance.liveState.pieceMap[square.row, square.col] != null 
+            && Checkers.IsMovablePiece(Checkers.instance.liveState.pieceMap[square.row, square.col], Checkers.instance.liveState)) {
             square.Highlight(GetComponent<MeshRenderer>().material.color);
         }
     }
@@ -137,18 +136,28 @@ public class Piece : MonoBehaviour {
 
     public float FlipToTarget(Square target) {
         float time = FlipToTarget(target.GetComponent<Collider>().bounds.center);
-        StartCoroutine(PlayHit(time));
+        //StartCoroutine(PlayHit(time));
         return time;
     }
 
-    IEnumerator PlayHit(float time) {
-        yield return new WaitForSeconds(time);
-        SoundManager.instance.RandomizeSfx(hit1);
-    }
+    /*IEnumerator PlayHit(float time) {
+        //yield return new WaitForSeconds(time);
+        //SoundManager.instance.RandomizeSfx(hit1);
+        yield return;
+    }*/
 
     public IEnumerator FlipToTarget(Square target, float timeDelay) {
         flying = true;
         yield return new WaitForSeconds(timeDelay);
         FlipToTarget(target);
+    }
+
+    void OnCollisionEnter(Collision collision) {
+        if(collision.collider.tag == "BoardTag")   
+            SoundManager.instance.RandomizeSfx(hit1);
+    }
+
+    public void King() {
+        GetComponent<MeshFilter>().mesh = king;
     }
 }

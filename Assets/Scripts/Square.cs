@@ -22,8 +22,7 @@ public class Square : MonoBehaviour {
         row = _row;
         col = _col;
     }
-
-    //FIXME: Nothing happens after building
+    
     public void Highlight(Color color) {
         GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
         GetComponent<MeshRenderer>().material.SetColor("_EmissionColor", color);
@@ -35,7 +34,8 @@ public class Square : MonoBehaviour {
 
     void OnMouseEnter() {
         Piece dragged = Checkers.instance.draggedPiece;
-        if(dragged != null && Checkers.instance.IsValidMove(new nPiece(dragged), this, Checkers.instance.pieceMap)) {
+        Checkers.MoveType type;
+        if(dragged != null && Checkers.IsValidMove(Checkers.instance.liveState.pieceMap[dragged.square.row, dragged.square.col], this, Checkers.instance.liveState, out type)) {
             Highlight(dragged.GetComponent<MeshRenderer>().material.color);
         }
     }

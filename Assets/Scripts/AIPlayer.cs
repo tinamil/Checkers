@@ -5,22 +5,26 @@ using System.Collections.Generic;
 public class AIPlayer : Player {
 
     AlphaBetaTree tree = null;
-    public int treeDepth = 3;
-    
+    private int treeDepth;
+
     new public bool mouseControlled = false;
+
+    public AIPlayer(int depth) {
+        this.treeDepth = depth;
+    }
 
     // Update is called once per frame
     override internal void DoUpdate() {
-        //if(Checkers.instance.currentPlayer == this && tree != null && !tree.Update()) {
-        //    return;
-        //} else if(Checkers.instance.currentPlayer == this && tree != null && tree.Update()) {
-         //   Checkers.instance.MovePiece(tree.bestMove.Value.piece.original, tree.bestMove.Value.target);
-        //    tree = null;
-        /*} else*/ if(Checkers.instance.currentPlayer == this) {
-            tree = new AlphaBetaTree(treeDepth, this, Checkers.instance.OtherPlayer(this), Checkers.instance.pieceMap);
-            //tree.Start();
-            tree.ThreadFunction();
-            Checkers.instance.MovePiece(tree.bestMove.Value.piece.original, tree.bestMove.Value.target);
+        if(Checkers.instance.liveState.currentPlayer == this && tree != null && !tree.Update()) {
+            return;
+        } else if(Checkers.instance.liveState.currentPlayer == this && tree != null && tree.Update()) {
+            Debug.Assert(tree.bestMove.HasValue);
+            Checkers.instance.MovePiece(tree.bestMove.Value.piece, tree.bestMove.Value.target);
+            tree = null;
+        } else if(Checkers.instance.liveState.currentPlayer == this && tree == null) {
+            tree = new AlphaBetaTree(treeDepth, Checkers.instance.liveState);
+            tree.Start();
+            //tree.ThreadFunction();
         }
     }
 
@@ -28,139 +32,123 @@ public class AIPlayer : Player {
     private class AlphaBetaTree : ThreadedJob {
         int maxDepth;
         Player aiPlayer;
-        Player otherPlayer;
-        nPiece[,] startingState;
+        CheckerState startingState;
         internal Move? bestMove;
 
-        
+
         internal struct Move {
-            public nPiece piece { get; private set; }
+            public Piece piece { get; private set; }
             public Square target { get; private set; }
 
-            public Move(nPiece p, Square t) {
+            public Move(Piece p, Square t) {
                 this.piece = p;
                 this.target = t;
             }
         }
 
-        internal AlphaBetaTree(int depth, Player aiPlayer, Player otherPlayer, nPiece[,] startingState) {
+        internal AlphaBetaTree(int depth, CheckerState startingState) {
             this.maxDepth = depth;
-            this.aiPlayer = aiPlayer;
-            this.otherPlayer = otherPlayer;
+            this.aiPlayer = startingState.currentPlayer;
             this.startingState = startingState;
         }
 
         internal override void ThreadFunction() {
-            nPiece[,] newBoard = new nPiece[Checkers.rows, Checkers.cols];
-            foreach(nPiece p in startingState) {
-                if(p != null) {
-                    nPiece newPiece = new nPiece(p);
-                    newBoard[p.square.row, p.square.col] = newPiece;
-                }
-            }
-            int value = FindOptimalChoice(0, aiPlayer, otherPlayer, newBoard, out bestMove);
-            Debug.Log("Best move was value " + value + " moving from [" + bestMove.Value.piece.original.square.row + ", " + bestMove.Value.piece.original.square.col + "] to [" + bestMove.Value.target.row + ", " + bestMove.Value.target.col + "]");
+            FindOptimalChoice(0, startingState, out bestMove);
+            //Debug.Log("Best move was value " + value + " moving from [" + bestMove.Value.piece.square.row + ", " + bestMove.Value.piece.square.col + "] to [" + bestMove.Value.target.row + ", " + bestMove.Value.target.col + "]");
         }
 
-        private bool MoveTheoretically(Player currentPlayer, Player otherPlayer, nPiece piece, Square target, nPiece[,] currentState) {
+        static private bool MoveTheoretically(nPiece piece, Square target, CheckerState currentState, out bool completedTurn) {
             Checkers.MoveType type;
-            if(Checkers.instance.IsValidMove(currentPlayer, piece, target, currentState, out type)) {
+            completedTurn = false;
+            if(Checkers.IsValidMove(piece, target, currentState, out type)) {
                 switch(type) {
 
                     case Checkers.MoveType.basic:
-                        currentState[piece.square.row, piece.square.col] = null;
-                        piece.square = target;
-                        currentState[piece.square.row, piece.square.col] = piece;
-                        if(Checkers.instance.IsKingRow(currentPlayer, piece)) {
-                            piece.king = true;
-                        }
-                        return true;
+                        currentState.MovePiece(piece, target, false);
+                        completedTurn = true;
+                        break;
 
                     case Checkers.MoveType.jump:
-                        return JumpTheoretically(currentPlayer, otherPlayer, piece, target, currentState);
+                        JumpTheoretically(piece, target, currentState, out completedTurn);
+                        break;
 
                 }
+                return true;
             }
             return false;
         }
 
-        private bool JumpTheoretically(Player currentPlayer, Player otherPlayer, nPiece piece, Square target, nPiece[,] currentState) {
+        static private void JumpTheoretically(nPiece piece, Square target, CheckerState currentState, out bool completedTurn) {
             piece.pendingFinishJump = false;
-            nPiece jumpedPiece = Checkers.instance.GetPlayerPiece(otherPlayer, Checkers.instance.GetJumpedSquare(piece, target), currentState);
+            nPiece jumpedPiece = Checkers.GetPlayerPiece(currentState.otherPlayer, Checkers.GetJumpedSquare(piece, target, currentState), currentState);
             //otherPlayer.pieces.Remove(jumpedPiece);
-            currentState[jumpedPiece.square.row, jumpedPiece.square.col] = null;
-            jumpedPiece.square = null;
-            currentState[piece.square.row, piece.square.col] = null;
-            piece.square = target;
-            currentState[piece.square.row, piece.square.col] = piece;
+            currentState.MovePiece(piece, target, false);
+            currentState.RemovePiece(jumpedPiece, false);
             List<Square> potentialFollowJump = new List<Square>();
-            foreach(Square adjacentJump in Checkers.instance.GetSquares(target, 2)) {
-                if(Checkers.instance.IsJump(currentPlayer, piece, adjacentJump, currentState)) {
+            foreach(Square adjacentJump in Checkers.GetSquares(target.row, target.col, currentState, 2)) {
+                if(Checkers.IsJump(piece, adjacentJump, currentState)) {
                     potentialFollowJump.Add(adjacentJump);
                 }
             }
             if(potentialFollowJump.Count == 1) {
-                return JumpTheoretically(currentPlayer, otherPlayer, piece, potentialFollowJump[0], currentState);
+                JumpTheoretically(piece, potentialFollowJump[0], currentState, out completedTurn);
             } else if(potentialFollowJump.Count == 0) {
-                if(Checkers.instance.IsKingRow(currentPlayer, piece)) {
-                    piece.king = true;
-                }
-                return true;
+                completedTurn = true;
             } else {
-                piece.pendingFinishJump = true; 
-                return false;
+                piece.pendingFinishJump = true;
+                completedTurn = false;
             }
         }
 
-        private int FindOptimalChoice(int depth, Player player, Player otherPlayer, nPiece[,] grid, out Move? bestMove) {
+        private int FindOptimalChoice(int depth, CheckerState state, out Move? bestMove) {
             bestMove = null;
-            if(depth >= this.maxDepth) {
-                return EvaluateState(grid);
+            if(depth > this.maxDepth) {
+                return EvaluateState(state);
             }
             int bestValue = int.MinValue;
             List<Move> bestMoves = new List<Move>();
-            foreach(nPiece targetPiece in grid) {
-                if(targetPiece == null) continue;
-                foreach(Square targetSquare in Checkers.instance.GetSquares(targetPiece.square, 1, 2)) {
-                    nPiece[,] newBoard = new nPiece[Checkers.rows, Checkers.cols];
-                    foreach(nPiece p in grid) {
-                        if(p != null) newBoard[p.square.row, p.square.col] = new nPiece(p);
-                    }
-                    
-                    if(MoveTheoretically(player, otherPlayer, targetPiece, targetSquare, newBoard)) {
+            foreach(nPiece targetPiece in state.pieceMap) {
+                if(targetPiece == null || targetPiece.owner != state.currentPlayer) continue;
+                foreach(Square targetSquare in Checkers.GetSquares(targetPiece.row, targetPiece.col, state, 1, 2)) {
+                    CheckerState duplicateState = state.DeepCopy();
+                    bool done;
+                    if(MoveTheoretically(duplicateState.pieceMap[targetPiece.row, targetPiece.col], duplicateState.board.grid[targetSquare.row, targetSquare.col], duplicateState, out done)) {
                         Move? ignored;
                         int value;
-                        if(Checkers.instance.IsPendingJumpChoice(player, newBoard)) {
-                            value = FindOptimalChoice(depth, player, otherPlayer, newBoard, out ignored);
-                        } else { 
-                            value = FindOptimalChoice(depth + 1, otherPlayer, player, newBoard, out ignored);
+                        if(!done) {
+                            value = FindOptimalChoice(depth, duplicateState, out ignored);
+                        } else {
+                            duplicateState.currentPlayer = duplicateState.otherPlayer;
+                            value = FindOptimalChoice(depth + 1, duplicateState, out ignored);
                         }
                         if(value > bestValue) {
                             bestMoves.Clear();
                         }
                         if(value >= bestValue) {
                             bestValue = value;
-                            bestMoves.Add(new Move(targetPiece, targetSquare));
+                            bestMoves.Add(new Move(targetPiece.original, targetSquare));
                         }
                     }
                 }
             }
             if(bestMoves.Count > 0) {
-                bestMove = bestMoves[Random.Range(0, bestMoves.Count)];
+                bestMove = bestMoves[new System.Random().Next(0, bestMoves.Count)];
             }
-            
+
             return bestValue;
         }
-        
-        int EvaluateState(nPiece[,] pieceGrid) {
+
+        int EvaluateState(CheckerState state) {
             int score = 0;
-            foreach(nPiece p in pieceGrid) {
+            int count = 0;
+            foreach(nPiece p in state.pieceMap) {
                 if(p == null) continue;
-                else if(p.owner == aiPlayer) score += 1;
+                if(p.owner == aiPlayer) score += 1;
                 else score -= 1;
+                count += 1;
             }
-            if(score == pieceGrid.Length) score = int.MaxValue;
-            if(score == -pieceGrid.Length) score = int.MinValue;
+            if(score == count) score = int.MaxValue;
+            if(score == -count) score = int.MinValue;
             return score;
         }
 
